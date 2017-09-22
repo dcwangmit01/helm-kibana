@@ -3,13 +3,13 @@ kind: Service
 metadata:
   name: {{.Values.name}}
   labels:
-    app: {{.Values.app}}
+    name: {{.Values.name}}
     kubernetes.io/cluster-service: "true"
     kubernetes.io/name: "Kibana"
 spec:
-  type: LoadBalancer
+  type: {{ .Values.service.type }}
   selector:
-    component: {{.Values.component}}
+    name: {{.Values.name}}
   ports:
     - name: http
       port: {{.Values.port}}
@@ -24,10 +24,10 @@ spec:
   template:
     metadata:
       labels:
-        component: {{.Values.component}}
+        name: {{.Values.name}}
     spec:
       containers:
-      - name: {{.Values.container_name}}
+      - name: {{.Values.name}}
         image: {{.Values.image}}
         imagePullPolicy: Always
         resources:
@@ -38,6 +38,12 @@ spec:
         env:
           - name: "{{.Values.env_name}}"
             value: "{{.Values.env_value}}"
+          - name: "SERVER_HOST"
+            value: "0.0.0.0"
+          - name: "SERVER_PORT"
+            value: "5601"
+          - name: "LOGGING_VERBOSE"
+            value: "true"
         ports:
         - containerPort: {{.Values.container_port}}
           name: ui
@@ -51,22 +57,32 @@ spec:
         effect: {{ .effect  | default ("")}}
       {{- end }}
       {{- end }}
-      {{- if .Values.scheduling.affinity }}
-      {{- if .Values.scheduling.affinity.node }}
-      {{- if .Values.scheduling.affinity.node.labels }}
+
+
+    {{- if eq .Values.antiAffinity "hard" }}
       affinity:
-        nodeAffinity:
-          {{ .Values.scheduling.affinity.node.type }}:
-            nodeSelectorTerms:
-            - matchExpressions:
-                {{- range .Values.scheduling.affinity.node.labels }}
-                - key: {{ .key }}
-                  operator: {{ .operator }}
-                  values:
-                  {{- range .values }}
-                  - {{ . }}
-                  {{- end }}
-                {{- end }}
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - topologyKey: "kubernetes.io/hostname"
+              labelSelector:
+                matchLabels:
+                  name: {{.Values.name}}
+      {{- else if eq .Values.antiAffinity "soft" }}
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 1
+            podAffinityTerm:
+              topologyKey: "kubernetes.io/hostname"
+              labelSelector:
+                matchLabels:
+                  name: {{.Values.name}}
       {{- end }}
-      {{- end }}
-      {{- end }}
+
+# Notes
+# The elastic.co image does not work.
+# Kibana fails to start
+# Requires this in the container.spec to remove x-pack
+#    command: [ "/bin/bash", "-c", "/usr/share/kibana/bin/kibana-plugin remove x-pack; /usr/local/bin/kibana-docker" ]
+# Tested with this image
+#   image: docker.elastic.co/kibana/kibana:5.6.1
