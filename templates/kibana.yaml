@@ -1,51 +1,45 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{.Values.name}}
+  name: {{.Values.service.name}}
   labels:
-    name: {{.Values.name}}
+    name: {{.Values.service.name}}
     kubernetes.io/cluster-service: "true"
     kubernetes.io/name: "Kibana"
 spec:
   type: {{ .Values.service.type }}
   selector:
-    name: {{.Values.name}}
+    name: {{.Values.service.name}}
   ports:
     - name: http
-      port: {{.Values.port}}
+      port: {{.Values.kibana.port}}
       protocol: TCP
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
-  name: {{.Values.name}}
+  name: {{.Values.service.name}}
 spec:
-  replicas: {{.Values.replicas}}
+  replicas: {{.Values.kibana.replicas}}
   template:
     metadata:
       labels:
-        name: {{.Values.name}}
+        name: {{.Values.service.name}}
     spec:
       containers:
-      - name: {{.Values.name}}
-        image: {{.Values.image}}
+      - name: {{.Values.service.name}}
+        image: {{.Values.kibana.image}}
         imagePullPolicy: Always
         resources:
           limits:
-            cpu: {{.Values.cpu_limit}}
+            cpu: {{.Values.kibana.cpu_limit}}
           requests:
-            cpu: {{.Values.cpu_requests}}
+            cpu: {{.Values.kibana.cpu_requests}}
         env:
-          - name: "{{.Values.env_name}}"
-            value: "{{.Values.env_value}}"
-          - name: "SERVER_HOST"
-            value: "0.0.0.0"
-          - name: "SERVER_PORT"
-            value: "5601"
-          - name: "LOGGING_VERBOSE"
-            value: "true"
+          - name: "ELASTICSEARCH_URL"
+            value: "{{.Values.elasticsearch.url}}"
         ports:
-        - containerPort: {{.Values.container_port}}
+        - containerPort: {{.Values.kibana.container_port}}
           name: ui
           protocol: TCP
       {{- if .Values.tolerations }}
@@ -59,15 +53,15 @@ spec:
       {{- end }}
 
 
-    {{- if eq .Values.antiAffinity "hard" }}
+    {{- if eq .Values.kibana.antiAffinity "hard" }}
       affinity:
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             - topologyKey: "kubernetes.io/hostname"
               labelSelector:
                 matchLabels:
-                  name: {{.Values.name}}
-      {{- else if eq .Values.antiAffinity "soft" }}
+                  name: {{.Values.service.name}}
+      {{- else if eq .Values.kibana.antiAffinity "soft" }}
       affinity:
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
@@ -76,7 +70,7 @@ spec:
               topologyKey: "kubernetes.io/hostname"
               labelSelector:
                 matchLabels:
-                  name: {{.Values.name}}
+                  name: {{.Values.service.name}}
       {{- end }}
 
 # Notes

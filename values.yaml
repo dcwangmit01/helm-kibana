@@ -1,21 +1,19 @@
-# Default values for kibana.
-
-# Service
-name: kibana
-replicas: 2
-antiAffinity: "hard"
-image: kibana:5.5.2
-
-env_name: ELASTICSEARCH_URL
-env_value: http://elasticsearch:9200
 
 service:
+  name: kibana
   type: "ClusterIP"
 
-cpu_limit: 100m
-cpu_requests: 100m
-port: 5601
-container_port: 5601
+kibana:
+  replicas: 2
+  image: kibana:5.5.2
+  antiAffinity: "hard"
+  cpu_limit: 100m
+  cpu_requests: 100m
+  port: 5601
+  container_port: 5601
+
+elasticsearch:
+  url: http://elasticsearch:9200
 
 tolerations:
  # - key: taintKey
