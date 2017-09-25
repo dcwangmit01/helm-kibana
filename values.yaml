@@ -5,7 +5,9 @@ service:
 
 kibana:
   replicas: 2
-  image: kibana:5.5.2
+  image: docker.elastic.co/kibana/kibana:5.6.1
+  # ^ This official image initializes slowly because it runs mandatory bundle
+  # optimizations which takes 25 minutes on underpowered kubernetes nodes.
   antiAffinity: "hard"
   cpu_limit: 100m
   cpu_requests: 100m
