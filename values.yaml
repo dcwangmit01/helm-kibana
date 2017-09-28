@@ -1,4 +1,14 @@
 
+general:
+  cluster_fqdn: kops.example.com
+
+ingress:
+  enable: "false"
+  basic_auth_hash: "YWRtaW46JGFwcjEkZTJqYUdudmIka0lndW5LZnFBZW9BdTlub3piclhLLwoK"
+  # ^ create with: htpasswd -nb admin password | base64
+  # ^ admin/password is the default
+  lego_acme_annotation: 'kubernetes.io/tls-acme: "true"'
+
 service:
   name: kibana
   type: "ClusterIP"

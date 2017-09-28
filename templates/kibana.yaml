@@ -1,3 +1,42 @@
+{{- if eq .Values.ingress.enable "true" }}
+---
+apiVersion: v1
+data:
+  auth: "{{.Values.ingress.basic_auth_hash}}"
+kind: Secret
+metadata:
+  name: {{.Values.service.name}}-basic-auth
+type: Opaque
+
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: {{.Values.service.name}}
+  annotations:
+    {{.Values.ingress.lego_acme_annotation}}
+    kubernetes.io/ingress.class: "nginx"
+    ingress.kubernetes.io/ssl-redirect: "true"
+    ingress.kubernetes.io/auth-type: basic
+    ingress.kubernetes.io/auth-secret: {{.Values.service.name}}-basic-auth
+    ingress.kubernetes.io/auth-realm: "Kibana Authentication Required"
+    external-dns.alpha.kubernetes.io/hostname: {{.Values.service.name}}.{{.Values.general.cluster_fqdn}}
+spec:
+  tls:
+  - hosts:
+    - {{.Values.service.name}}.{{.Values.general.cluster_fqdn}}
+    secretName: {{.Values.service.name}}-tls
+  rules:
+  - host: {{.Values.service.name}}.{{.Values.general.cluster_fqdn}}
+    http:
+      paths:
+      - backend:
+          serviceName: {{.Values.service.name}}
+          servicePort: {{.Values.kibana.port}}
+        path: /
+{{- end }}
+
+---
 apiVersion: v1
 kind: Service
 metadata:
@@ -14,6 +53,7 @@ spec:
     - name: http
       port: {{.Values.kibana.port}}
       protocol: TCP
+
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
@@ -82,11 +122,3 @@ spec:
                 matchLabels:
                   name: {{.Values.service.name}}
       {{- end }}
-
-# Notes
-# The elastic.co image does not work.
-# Kibana fails to start
-# Requires this in the container.spec to remove x-pack
-#    command: [ "/bin/bash", "-c", "/usr/share/kibana/bin/kibana-plugin remove x-pack; /usr/local/bin/kibana-docker" ]
-# Tested with this image
-#   image: docker.elastic.co/kibana/kibana:5.6.1
