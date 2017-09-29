@@ -10,7 +10,6 @@ ingress:
   lego_acme_annotation: 'kubernetes.io/tls-acme: "true"'
 
 service:
-  name: kibana
   type: "ClusterIP"
 
 kibana:

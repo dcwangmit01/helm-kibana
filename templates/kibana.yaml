@@ -1,37 +1,37 @@
-{{- if eq .Values.ingress.enable "true" }}
+{{- if eq .Values.ingress.enable true }}
 ---
 apiVersion: v1
 data:
   auth: "{{.Values.ingress.basic_auth_hash}}"
 kind: Secret
 metadata:
-  name: {{.Values.service.name}}-basic-auth
+  name: {{ template "fullname" . }}-basic-auth
 type: Opaque
 
 ---
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
-  name: {{.Values.service.name}}
+  name: {{ template "fullname" . }}
   annotations:
     {{.Values.ingress.lego_acme_annotation}}
     kubernetes.io/ingress.class: "nginx"
     ingress.kubernetes.io/ssl-redirect: "true"
     ingress.kubernetes.io/auth-type: basic
-    ingress.kubernetes.io/auth-secret: {{.Values.service.name}}-basic-auth
+    ingress.kubernetes.io/auth-secret: {{ template "fullname" . }}-basic-auth
     ingress.kubernetes.io/auth-realm: "Kibana Authentication Required"
-    external-dns.alpha.kubernetes.io/hostname: {{.Values.service.name}}.{{.Values.general.cluster_fqdn}}
+    external-dns.alpha.kubernetes.io/hostname: {{ template "fullname" . }}.{{.Values.general.cluster_fqdn}}
 spec:
   tls:
   - hosts:
-    - {{.Values.service.name}}.{{.Values.general.cluster_fqdn}}
-    secretName: {{.Values.service.name}}-tls
+    - {{ template "fullname" . }}.{{.Values.general.cluster_fqdn}}
+    secretName: {{ template "fullname" . }}-tls
   rules:
-  - host: {{.Values.service.name}}.{{.Values.general.cluster_fqdn}}
+  - host: {{ template "fullname" . }}.{{.Values.general.cluster_fqdn}}
     http:
       paths:
       - backend:
-          serviceName: {{.Values.service.name}}
+          serviceName: {{ template "fullname" . }}
           servicePort: {{.Values.kibana.port}}
         path: /
 {{- end }}
@@ -40,15 +40,15 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{.Values.service.name}}
+  name: {{ template "fullname" . }}
   labels:
-    name: {{.Values.service.name}}
+    name: {{ template "fullname" . }}
     kubernetes.io/cluster-service: "true"
     kubernetes.io/name: "Kibana"
 spec:
   type: {{ .Values.service.type }}
   selector:
-    name: {{.Values.service.name}}
+    name: {{ template "fullname" . }}
   ports:
     - name: http
       port: {{.Values.kibana.port}}
@@ -58,16 +58,16 @@ spec:
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
-  name: {{.Values.service.name}}
+  name: {{ template "fullname" . }}
 spec:
   replicas: {{.Values.kibana.replicas}}
   template:
     metadata:
       labels:
-        name: {{.Values.service.name}}
+        name: {{ template "fullname" . }}
     spec:
       containers:
-      - name: {{.Values.service.name}}
+      - name: {{ template "fullname" . }}
         command: [ "/bin/bash", "-c", "/usr/share/kibana/bin/kibana-plugin remove x-pack; echo 'The optimization of kibana bundles may take up to 25 minutes to complete.'; /usr/local/bin/kibana-docker" ]
         # ^ remove xpack additions from official elastic.co kibana image
         image: {{.Values.kibana.image}}
@@ -110,7 +110,7 @@ spec:
             - topologyKey: "kubernetes.io/hostname"
               labelSelector:
                 matchLabels:
-                  name: {{.Values.service.name}}
+                  name: {{ template "fullname" . }}
       {{- else if eq .Values.kibana.antiAffinity "soft" }}
       affinity:
         podAntiAffinity:
@@ -120,5 +120,5 @@ spec:
               topologyKey: "kubernetes.io/hostname"
               labelSelector:
                 matchLabels:
-                  name: {{.Values.service.name}}
+                  name: {{ template "fullname" . }}
       {{- end }}
